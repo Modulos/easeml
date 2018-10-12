@@ -1,5 +1,5 @@
 <template>
-<modal name="new-job" transition="pop-out" height="550" width="1000" @before-open="beforeOpen">
+<modal name="new-job" transition="pop-out" height="700" width="1000" @before-open="beforeOpen">
 
         <button type="button" class="close" onclick="">
             <span>&times;</span><span class="sr-only">Close</span>
@@ -38,7 +38,7 @@
                             <h4> Choose an Objective </h4>
 
                             <div class="row">
-                                <div class="col-4">
+                                <div class="col-4 ">
                                     <select size="10" class="form-control" v-model="selectedObjective">
                                         <option v-for="objective in objectives" :key="objective.id" :value="objective">
                                             {{objective.name || objective.id}}
@@ -51,7 +51,6 @@
                                     <span v-html="selectedObjectiveDescriptionHtml"></span>
                                 </div>
                             </div>
-
                         </div>
 
                     </transition>
@@ -59,20 +58,60 @@
                     <transition name="fade" mode="out-in">
 
                         <div class="wiz-step" v-show="step === 3">
-                            <h4> Choose Models </h4>
+                            
 
                             <div class="row">
-                                <div class="col-4">
-                                    <select multiple size="10" class="form-control" v-model="selectedModels">
-                                        <option v-for="model in models" :key="model.id" :value="model">
-                                            {{model.name || model.id}}
-                                        </option>
-                                    </select>
+                                <div class="col-4 h-100">
+                                    <div>
+                                        <h4> Choose Models </h4>
+                                        <select multiple size="10" class="form-control" v-model="selectedModels">
+                                            <option v-for="model in models.filter(item => item.label.includes('ai_solution') === false)" 
+                                            :key="model.id" :value="model">
+                                                {{model.name || model.id}}
+                                            </option>
+                                            <option v-for="model in models.filter(item => item.label.includes('ai_solution') === true)" 
+                                                :key="model.id" :value="model">
+                                                {{(model.name + ' (AI solution 🚀) ')|| model.id}}
+                                            </option>
+                                        </select>
+                                        <br/>
+                                    </div>
                                 </div>
 
-                                <div class="col">
+                                <div class="col-4 h-100">
                                     <h1>{{selectedModelName}}</h1>
                                     <span v-html="selectedModelDescriptionHtml"></span>
+                                    <!-- show gif if available -->
+                                    <div>
+                                        <img src="../assets/gifs/class-svm.gif" width=100% height=100%/>
+                                    </div>
+                                </div>
+
+                                <div v-if="selectedModels.length == 1" class="col-4 h-100">
+                                    <h4>Hyperparameter Settings</h4>
+                                    <div v-for="(config, configName) in selectedModels[0]['parsedConfigSpace']" :key="configName">
+                                        <strong>{{configName}}</strong>
+
+                                       <div v-for="(hyperParameterChoices, hyperParameterName) in config" :key="hyperParameterName">
+                                           <div v-if="hyperParameterName == '.choice'">
+                                                
+                                                <ul v-if="hyperParameterChoices.length >= 0">
+                                                    <li v-for="v in hyperParameterChoices" :key="v">
+
+                                                        <input type="checkbox" 
+                                                        :id="selectedModels[0].id + '_' + configName + '_' + hyperParameterName + '_' + v" 
+                                                        :name="selectedModels[0].id + '_' + configName + '_' + hyperParameterName + '_' + v" 
+                                                        checked="checked" 
+                                                        v-model="modelConfigSpace[selectedModels[0].id][configName][hyperParameterName][v]"
+                                                        :value="selectedModels[0].id + '_' + configName + '_' + hyperParameterName + '_' + v" 
+                                                        >
+                                                        <label :for="selectedModels[0].id + '_' + configName + '_' + hyperParameterName + '_' + v">{{v}}</label>
+                                                        
+                                                    </li>
+                                                </ul>
+                                           </div>
+                                       </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -115,7 +154,7 @@
                                     <label for="chk-max-task-unlimited" class="form-check-label">Unlimited</label>
                                 </div>
                             </div>
-
+                            
                             <div class="form-group row align-items-center">
                                 <label class="col-3 col-form-label" for="chk-accept-models">When new models arrive</label>
                                 <div class="col-9">
@@ -164,6 +203,8 @@ export default {
             maxTasks: 100,
             maxTasksUnlimited: false,
             acceptNewModels: true,
+            modelConfigSpace: {},
+            configspace_finish: {},
         }
     },
     computed: {
@@ -203,7 +244,7 @@ export default {
             } else {
                 return ""
             }
-        }
+        },
     },
     methods : {
         prev() {
@@ -217,6 +258,9 @@ export default {
                 this.step++;
                 this.initStep();
             }
+        },
+        toggle(index) {
+            this.activeIndex = index;
         },
         sucess(id) {
             this.$modal.hide("new-job");
@@ -232,13 +276,15 @@ export default {
         finish() {
 
             let context = client.loadContext(JSON.parse(localStorage.getItem("context")));
-            
+            console.log("final hyper parameters: " + JSON.stringify(this.configspace_finish));
+
             let job = {
                 dataset: this.selectedDataset.id,
                 objective: this.selectedObjective.id,
                 models: this.selectedModels.map(x => x.id),
                 acceptNewModels: this.acceptNewModels,
-                maxTasks: this.maxTasksUnlimited ? 0 : this.maxTasks
+                maxTasks: this.maxTasksUnlimited ? 0 : this.maxTasks,
+                "config-space": [this.configspace_finish],
             }
             context.createJob(job)
             .then(id => {
@@ -251,6 +297,7 @@ export default {
             // Redirect to new job.
 
         },
+        
         initStep() {
 
             let context = client.loadContext(JSON.parse(localStorage.getItem("context")));
@@ -288,6 +335,7 @@ export default {
             } else if (this.step === 3) {
                 // Model choose step.
 
+
                 // For the chosen dataset, find applicable models.
                 context.getModules({
                     type: "model",
@@ -297,16 +345,64 @@ export default {
                 }).then(data => {
                     this.models = data;
                     this.selectedModels = this.models;
+
+                    for(var mid in this.models){
+
+                        var midstr = this.models[mid].id
+                        
+                        this.models[mid]["parsedConfigSpace"] = JSON.parse(this.models[mid]["configSpace"])
+                        // console.log(this.models[mid]["parsedConfigSpace"])
+                        this.modelConfigSpace[midstr] = {}
+
+                        for(var configName in this.models[mid]["parsedConfigSpace"]){
+
+                            this.modelConfigSpace[midstr][configName] = {}
+                            for(var hyperParameterName in this.models[mid]["parsedConfigSpace"][configName]){
+                                this.modelConfigSpace[midstr][configName][hyperParameterName] = {}
+                                if(hyperParameterName == '.choice'){
+
+                                    for(var v_idx in this.models[mid]["parsedConfigSpace"][configName][hyperParameterName]){
+                                        var v = this.models[mid]["parsedConfigSpace"][configName][hyperParameterName][v_idx];
+                                        this.modelConfigSpace[midstr][configName][hyperParameterName][v] = true
+                                    }
+                                }
+                                
+                            }
+                            
+                        }
+                    };
                 })
                 .catch(e => console.log(e));
 
             } else if (this.step === 4) {
-                // Finalization step.
+
+                // / Finalization step.
 
                 // Specify max-tasks and whether new models should be added on the fly.
 
+                // create array with final hyperparameter settings
+                for (var mid in this.models){
+                    var midstr = this.models[mid].id;
+                    this.configspace_finish[this.models[mid].id] = {};
+                    for(var configName in this.models[mid]["parsedConfigSpace"]){
+                        this.configspace_finish[this.models[mid].id][configName] = {};
+                        if(".choice" in this.models[mid]["parsedConfigSpace"][configName]){
+                            this.configspace_finish[this.models[mid].id][configName][".choice"] = [];
+                            for(var v_idx in this.models[mid]["parsedConfigSpace"][configName][".choice"]){
+                                var v = this.models[mid]["parsedConfigSpace"][configName][".choice"][v_idx];
+                                if(this.modelConfigSpace[midstr][configName][".choice"][v]){
+                                    if (typeof v === 'string' || v instanceof String){
+                                        this.configspace_finish[this.models[mid].id][configName][".choice"].push(v)
+                                    } else {
+                                        this.configspace_finish[this.models[mid].id][configName][".choice"].push(String(v))
+                                    };   
+                                };
+                            };
+                        };
+                    };
+                };
             }
-
+                
         },
         beforeOpen() {
             this.step = 1;
