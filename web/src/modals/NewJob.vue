@@ -81,9 +81,8 @@
                                 <div class="col-4 h-100">
                                     <h1>{{selectedModelName}}</h1>
                                     <span v-html="selectedModelDescriptionHtml"></span>
-                                    <!-- show gif if available -->
-                                    <div>
-                                        <img src="../assets/gifs/class-svm.gif" width=100% height=100%/>
+                                    <div v-if="selectedModels.length == 1">
+                                        <img :src="require('../assets/gifs/' + selectedModels[0].name + '.gif')" width=100% height=100%/>
                                     </div>
                                 </div>
 
@@ -177,7 +176,6 @@
                         <button type="submit" class="btn btn-custom waves-light waves-effect" v-show="!nextVisible" @click.prevent="finish()">Finish</button>
                     </div>
                 </div>
-
             </form>
         </div>
 
@@ -429,7 +427,7 @@ export default {
     width: 100%;
 }
 .wiz-buttons {
-    float: right;
+    text-align: right;
     vertical-align: bottom;
 }
 .close {
