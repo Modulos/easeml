@@ -275,14 +275,19 @@ export default {
 
             let context = client.loadContext(JSON.parse(localStorage.getItem("context")));
             console.log("final hyper parameters: " + JSON.stringify(this.configspace_finish));
-
+            var configFormated = [];
+            for (var modelKey in this.configspace_finish) {
+                configFormated.push({"id": modelKey, "config": this.configspace_finish[modelKey]})
+            }
+            console.log(configFormated);
             let job = {
                 dataset: this.selectedDataset.id,
                 objective: this.selectedObjective.id,
                 models: this.selectedModels.map(x => x.id),
                 acceptNewModels: this.acceptNewModels,
                 maxTasks: this.maxTasksUnlimited ? 0 : this.maxTasks,
-                "config-space": [this.configspace_finish],
+                "config-space": configFormated
+                //"config-space": [this.configspace_finish],
             }
             context.createJob(job)
             .then(id => {
@@ -392,7 +397,7 @@ export default {
                                     if (typeof v === 'string' || v instanceof String){
                                         this.configspace_finish[this.models[mid].id][configName][".choice"].push(v)
                                     } else {
-                                        this.configspace_finish[this.models[mid].id][configName][".choice"].push(String(v))
+                                        this.configspace_finish[this.models[mid].id][configName][".choice"].push(v)
                                     };   
                                 };
                             };

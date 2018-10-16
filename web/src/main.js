@@ -16,6 +16,10 @@ window.$ = $;
 
 require("bootstrap");
 
+const SumChart= Vue.component('SumChart', {
+	template: '<SumChart/>'
+});
+
 import MetisMenu from "metismenujs";
 
 Vue.config.productionTip = false;

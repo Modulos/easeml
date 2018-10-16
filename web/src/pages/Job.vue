@@ -38,6 +38,37 @@
                 </div>
             </div>
 
+            <div class="topgrid card-box">
+                <div>
+                <h4 class="header-title">Qualities</h4>
+                <SumChart ref="summaryPlot"></SumChart>
+                </div>
+                <div>
+                <h4 class="header-title">Queued jobs</h4>
+
+                <table class="table table-hover m-0 tickets-list table-actions-bar dt-responsive nowrap" cellspacing="0" width="100%" id="datatable">
+                <thead>
+                <tr>
+                    <th>Model</th>
+                    <th>Hyperparameters</th>
+                </tr>
+                </thead>
+
+                <tbody>
+                    <tr v-for="item in combinations" :key="item.id">
+
+                        <td>{{item["modelName"]}}</td>
+
+                        <td>{{item["values"]}}</td>
+
+                    </tr>
+                </tbody>
+                </table>
+                </div>
+            </div>
+
+
+
             <div class="card-box">
                 
 
@@ -56,6 +87,7 @@
                     <th>Stage</th>
                     <th>Running Time</th>
                     <th>Quality</th>
+                    <th>Config</th>
                     <th class="hidden-sm">Action</th>
                 </tr>
                 </thead>
@@ -74,6 +106,8 @@
                         <td>{{ item.runningDurationString }}</td>
 
                         <td>{{item.quality}}</td>
+
+                        <td>{{item.config}}</td>
                         <td>
                             <button type="button" class="btn btn-icon waves-effect btn-light" v-show="item.status==='completed'" @click.prevent="downloadPredictions(item.id)">
                                 <i class="fa fa-cloud-download"></i>
@@ -92,14 +126,24 @@
 </template>
 <script>
 import client from "@/client/index"
+import SumChart from "@/components/SumChart";
 
 export default {
+    components: {
+        SumChart
+    },
     data() {
         return {
             items: [],
             jobId: "",
             job: {},
-            jobModels: null
+            jobModels: null,
+            allmodels: [],
+            configurations: [],
+            modelnames: [],
+            stages: {},
+            combinations: null,
+            configSpace: {}
         };
     },
     computed: {
@@ -136,8 +180,20 @@ export default {
         }
     },
     methods: {
+        allcombs(variants) {
+            return (function recurse(keys) {
+                if (!keys.length) return [{}];
+                let result = recurse(keys.slice(1));
+                return variants[keys[0]].reduce( (acc, value) =>
+                    acc.concat( result.map( item => 
+                        Object.assign({}, item, { [keys[0]]: value }) 
+                        ) ),
+                    []);})(Object.keys(variants));
+        },   
+        updateSummaryPlot() {
+            this.$refs.summaryPlot.updateChart(this.qualityDict);
+        },
         loadData: function() {
-
             let context = client.loadContext(JSON.parse(localStorage.getItem("context")));
 
             context.getTasks({job: this.jobId, orderBy: "quality", order: "desc"})
@@ -149,6 +205,7 @@ export default {
             context.getJobById(this.jobId)
             .then(data => {
                 this.job = data;
+
 
                 // Check if new models have been added to this job.
                 if (this.jobModels && this.jobModels.length !== this.job.models.length) {
@@ -167,11 +224,32 @@ export default {
                         }
                     }
                 }
+                if (this.job.models && this.modelnames.length != this.job.models.length) {
+                    for (let i = 0; i < this.job.models.length; i++) {
+                        if (this.modelnames.includes(this.job.models[i]) === false) {
+                            this.modelnames.push(this.job.models[i]);
+                            this.qualityDict[this.job.models[i]] = [];
+                        }
+                    }
+                }
 
                 this.jobModels = this.job.models;
+                
+                for (var i=0; i<this.items.length; i++) {
+                    if (this.configurations.includes(this.items[i].intId) === false) {
+                        this.configurations.push(this.items[i].intId);
+                        this.stages[this.items[i].intId] = false;
+                    }
+                    if ((this.items[i].stage == "end")&&(this.stages[this.items[i].intId] === false)) {
+                        this.stages[this.items[i].intId] = true;
+                        this.qualityDict[this.items[i].model].push(this.items[i].quality);
+                    }
+                }
+                this.updateSummaryPlot();
+                
             })
             .catch(e => console.log(e));
-
+        
         },
         pauseClick() {
 
@@ -214,8 +292,41 @@ export default {
             context.downloadTrainedModelAsImage(taskId, true)
         }
     },
-    mounted() {
+    mounted() {if (!(this.combinations)) {
+        var combId = 0;
+        this.combinations = [];
+        let context = client.loadContext(JSON.parse(localStorage.getItem("context")));
+         context.getModules({
+                type: "model",
+                status: "active"
+            }).then(data => {
+                this.allmodels = data;
+                this.selectedModels = this.allmodels;
+                console.log(this.allmodels);
+                for(var mid in this.allmodels){
+                    var midstr = this.allmodels[mid].id;
+                    var tmpConfig = JSON.parse(this.allmodels[mid]["configSpace"]);
+                    this.configSpace[midstr] = {};
+                    for (var paramName in tmpConfig) {
+                        var tmpSubConfig = tmpConfig[paramName][".choice"];
+                        var tmpValues = [];
+                        for (var subkey in tmpSubConfig) {
+                            tmpValues.push(tmpSubConfig[subkey])
+                        }
+                        this.configSpace[midstr][paramName] = tmpValues;
+                    }
+                    let tmpCombs = this.allcombs(this.configSpace[midstr]);
+                    //console.log(tmpCombs);
+                    for (var tmpCombsKey in tmpCombs) {
+                        this.combinations.push({"id": combId, "modelName": midstr, "values": tmpCombs[tmpCombsKey]});
+                        combId = combId + 1;
+                    }
+                    
+                }
+                })
+        }
 
+        this.qualityDict = {};
         this.jobId = this.$route.params.id;
         this.loadData();
         
@@ -230,4 +341,16 @@ export default {
 };
 </script>
 <style>
+    .info {
+        height: 700px;
+        overflow: auto;
+    }
+    .topgrid{
+        height: 350px;
+        overflow: auto;
+        display: grid;
+        grid-gap: var(--spacing);
+        grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+        min-height: calc(100vh - var(--spacing)*2);
+    }
 </style>
