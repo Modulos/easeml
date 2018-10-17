@@ -13,6 +13,7 @@
                                 <span class="pull-left mr-4"><i class="fa fa-cogs thumb-lg" style="font-size: 88px"></i></span>
                                     <!--<h4 class="mt-1 mb-1 font-18">{{job.id}}</h4>-->
                                     <span class="font-13 text-light">
+                               
                                     Status: <b>{{job.status}}</b> <br/>
                                     Runtime: <b>{{job.runningDurationString}}</b><br/>
                                     Dataset: <b>{{job.dataset}}</b><br/>
@@ -42,6 +43,8 @@
                 <div>
                 <h4 class="header-title">Qualities</h4>
                 <SumChart ref="summaryPlot"></SumChart>
+                     <button class="btn btn-custom waves-light waves-effect" @click.prevent="updatePreviewPlot()">Show Preview</button>
+                <PrevChart v-show="showPreview" ref="previewPlot"></PrevChart>
                 </div>
                 <div>
                 <h4 class="header-title">Queued jobs</h4>
@@ -124,13 +127,21 @@
         </div>
     </div>
 </template>
+
 <script>
 import client from "@/client/index"
 import SumChart from "@/components/SumChart";
+import PrevChart from "@/components/PrevChart";
+import tarOpener from "@/schema/tar-opener";
+import findReadmeAndScan from "@/modals/NewDataset";
+import loadDirectory from "@/schema/src/dataset";
+const axios = require('axios');
+
 
 export default {
     components: {
-        SumChart
+        SumChart,
+        PrevChart
     },
     data() {
         return {
@@ -143,7 +154,9 @@ export default {
             modelnames: [],
             stages: {},
             combinations: null,
-            configSpace: {}
+            configSpace: {},
+            showPreview: false,
+            datasetItems: null
         };
     },
     computed: {
@@ -180,6 +193,49 @@ export default {
         }
     },
     methods: {
+        openDataset (f) {
+            var test = null;
+            let n = new numpyReader();
+            n.load(f, (array, shape) => {
+            // `array` is a one-dimensional array of the raw data
+            // `shape` is a one-dimensional array that holds a numpy-style shape.
+            console.log(`You loaded an array with ${array.length} elements and ${shape.length} dimensions.`);
+            test = array;
+            console.log("test npy")
+            console.log(test)
+            console.log("test npy end")
+         })
+        },
+        updatePreviewPlot () {
+            var datasetId = this.datasetItems["0"]["id"]
+            console.log(datasetId)
+            let context = client.loadContext(JSON.parse(localStorage.getItem("context")));
+
+            context.getDatasetById(datasetId)
+            .then(data => {
+                console.log(data)
+            })
+            .catch(e => console.log(e));
+
+            const url = context.axiosInstance.defaults.baseURL + "/datasets/"+datasetId+"/data/train/input/wm4uvjpwmd/vector.ten.npy"
+            console.log(url)
+
+            this.openDataset(url)
+            //var result = this.openDataset(url)
+            //let openerTrainIn = tarOpener.new_opener(result["train"]["input"]);
+            //let directory = loadDirectory(url, "", "", openerTrainIn, false);
+            //console.log(directory)
+            /*// Extract the schema.
+            let success = this.extractSchema(result);
+            if (success) {
+                this.switchStep(+1);
+                this.showPreviewOption = true;
+            }*/
+
+
+            this.$refs.previewPlot.updateChart([10, 20, 30, 20, 30]);
+            this.showPreview = true;
+        },
         allcombs(variants) {
             return (function recurse(keys) {
                 if (!keys.length) return [{}];
@@ -249,6 +305,8 @@ export default {
                 
             })
             .catch(e => console.log(e));
+
+            context.getDatasets().then(data => {this.datasetItems = data;})
         
         },
         pauseClick() {

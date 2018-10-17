@@ -16,8 +16,17 @@ window.$ = $;
 
 require("bootstrap");
 
+
 const SumChart= Vue.component('SumChart', {
 	template: '<SumChart/>'
+});
+
+const PrevChart= Vue.component('PrevChart', {
+	template: '<PrevChart/>'
+});
+
+const PreviewTable= Vue.component('PreviewTable', {
+	template: '<PreviewTable/>'
 });
 
 import MetisMenu from "metismenujs";
