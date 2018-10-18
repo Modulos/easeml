@@ -18,4 +18,4 @@
 
 # IDEA gitignore.
 .idea/*
-
+.DS_Store

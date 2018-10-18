@@ -22,7 +22,6 @@
                                         <option value="download">Download from a remote location</option>
                                         <option value="local">Copy from a local directory</option>
                                     </select>
-                                    <!--<BarChart/>-->
                                 </div>
 
                             </div>
@@ -149,10 +148,10 @@
                 </div>
 
                 <div class="plotgrid">
-                    <BarChart v-show="showPreview && step === 2" ref="lineplot1">
-                    </BarChart>
-                    <BarChart  v-show="showPreview && step === 2" ref="lineplot2">
-                    </BarChart>
+                    <PrevChart v-show="showPreview && step === 2" ref="lineplot1">
+                    </PrevChart>
+                    <PrevChart  v-show="showPreview && step === 2" ref="lineplot2">
+                    </PrevChart>
                     <PreviewTable v-show="showPreview && step === 2" ref="table">
                     </PreviewTable>
                 </div>
@@ -175,7 +174,7 @@ import FileDropzone from "@/components/FileDropzone.vue";
 import tarOpener from "@/schema/tar-opener";
 import client from "@/client/index";
 import showdown from "showdown";
-import BarChart from "@/components/BarChart";
+import PrevChart from "@/components/PrevChart";
 import PreviewTable from "@/components/PreviewTable";
 
 var converter = new showdown.Converter();
@@ -227,7 +226,7 @@ export default {
     components: {
         vueDropzone: vue2Dropzone,
         FileDropzone,
-        BarChart,
+        PrevChart,
         PreviewTable
     },
     data() {
