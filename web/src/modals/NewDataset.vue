@@ -1,6 +1,5 @@
 <template>
-<modal name="new-dataset" transition="pop-out" height="auto" width="1000" @before-open="beforeOpen">
-
+<modal name="new-dataset" transition="pop-out" height="auto" scrollable="true" width="1000" @before-open="beforeOpen">
         <button type="button" class="close" onclick="">
             <span>&times;</span><span class="sr-only">Close</span>
         </button>
@@ -23,6 +22,7 @@
                                         <option value="download">Download from a remote location</option>
                                         <option value="local">Copy from a local directory</option>
                                     </select>
+                                    <!--<BarChart/>-->
                                 </div>
 
                             </div>
@@ -144,7 +144,18 @@
                     </transition>
 
                 </div>
-                
+                <div v-if="showPreviewOption && step === 2">
+                     <button class="btn btn-custom waves-light waves-effect" @click.prevent="updateComponentData()">Show Preview</button>
+                </div>
+
+                <div class="plotgrid">
+                    <BarChart v-show="showPreview && step === 2" ref="lineplot1">
+                    </BarChart>
+                    <BarChart  v-show="showPreview && step === 2" ref="lineplot2">
+                    </BarChart>
+                    <PreviewTable v-show="showPreview && step === 2" ref="table">
+                    </PreviewTable>
+                </div>
                 <div class="mt-1">
                     <div class="button-list wiz-buttons">
                         <button class="btn btn-custom waves-light waves-effect" v-show="prevVisible" @click.prevent="prev()">Previous</button>
@@ -152,11 +163,9 @@
                         <button type="submit" class="btn btn-custom waves-light waves-effect" v-show="finishVisible" @click.prevent="finish()">Finish</button>
                     </div>
                 </div>
-
             </form>
-        </div>
-
-</modal>
+        </div> 
+    </modal>
 </template>
 
 <script>
@@ -166,6 +175,9 @@ import FileDropzone from "@/components/FileDropzone.vue";
 import tarOpener from "@/schema/tar-opener";
 import client from "@/client/index";
 import showdown from "showdown";
+import BarChart from "@/components/BarChart";
+import PreviewTable from "@/components/PreviewTable";
+
 var converter = new showdown.Converter();
 
 import easemlSchema from "@/schema/src/index";
@@ -214,7 +226,9 @@ export default {
     name: 'NewDatasetModal',
     components: {
         vueDropzone: vue2Dropzone,
-        FileDropzone
+        FileDropzone,
+        BarChart,
+        PreviewTable
     },
     data() {
         return {
@@ -233,6 +247,9 @@ export default {
             datasetSchemaOutDump: "",
             currentUserId: "",
             currentUploadProgress: 0,
+            examples: null,
+            showPreviewOption: false,
+            showPreview: false
         }
     },
     computed: {
@@ -261,6 +278,31 @@ export default {
         }
     },
     methods : {
+        getDim(a) {
+    var dim = [];
+    for (;;) {
+        dim.push(a.length);
+
+        if (Array.isArray(a[0])) {
+            a = a[0];
+        } else {
+            break;
+        }
+    }
+    console.log("test1")
+    console.log(a.shape)
+    console.log("test1")
+    return dim;
+},
+        updateComponentData() {
+            console.log("test")
+            console.log(this.getDim(this.examples[0]))
+            console.log("test")
+      this.$refs.lineplot1.updateChart(this.examples[0])
+      this.$refs.lineplot2.updateChart(this.examples[1])
+      this.$refs.table.updateEntries(this.examples[0])
+      this.showPreview = true;
+    },
         prev() {
             this.switchStep(-1);
         },
@@ -402,7 +444,16 @@ export default {
 
             // Load datasets.
             try {
-                var datasetTrainIn = easemlSchema.dataset.load("", openerTrainIn, true);
+                var schemaOutput = easemlSchema.dataset.load("", openerTrainIn, false);
+                var datasetTrainIn = schemaOutput[0];
+                var samples = schemaOutput[1]["directory"]["children"];
+                //var randomKey = Object.keys(samples)[0];
+                var key1 = Object.keys(samples)[0];
+                var chosenSample1 = samples[key1]["children"]["vector"];
+                this.examples = [chosenSample1];
+                console.log("test")
+                console.log(this.getDim(this.examples[0]))
+                console.log("test")
             } catch (err) {
                 if (err instanceof easemlSchema.dataset.DatasetException) {
                     this.error = "Dataset load error: " + err.message + " @ /train/input" + err.path;
@@ -414,7 +465,8 @@ export default {
             }
 
             try {
-                var datasetTrainOut = easemlSchema.dataset.load("", openerTrainOut, true);
+                var schemaOutputOut = easemlSchema.dataset.load("", openerTrainOut, false);
+                var datasetTrainOut = schemaOutputOut[0];
             } catch (err) {
                 if (err instanceof easemlSchema.dataset.DatasetException) {
                     this.error = "Dataset load error: " + err.message + " @ /train/output" + err.path;
@@ -428,6 +480,7 @@ export default {
             // Infer schemas.
             try {
                 this.datasetSchemaIn = datasetTrainIn.inferSchema();
+                console.log(this.datasetSchemaIn);
             } catch (err) {
                 if (err instanceof easemlSchema.schema.SchemaException) {
                     this.error = "Input schema inference error: " + err.message + " @ " + err.path;
@@ -440,6 +493,7 @@ export default {
             try {
                 this.datasetSchemaOut = datasetTrainOut.inferSchema();
             } catch (err) {
+            	console.log(err)
                 if (err instanceof easemlSchema.schema.SchemaException) {
                     this.error = "Output schema inference error: " + err.message + " @ " + err.path;
                 } else {
@@ -452,7 +506,6 @@ export default {
             // Dump JSON schemas.
             this.datasetSchemaInDump = yaml.safeDump(this.datasetSchemaIn.dump());
             this.datasetSchemaOutDump = yaml.safeDump(this.datasetSchemaOut.dump());
-
             return true;
         },
         linesToParagraphs(input) {
@@ -480,9 +533,9 @@ export default {
 
                 // Extract the schema.
                 let success = this.extractSchema(result);
-
                 if (success) {
                     this.switchStep(+1);
+                    this.showPreviewOption = true;
                 }
 
             }).catch(e => console.log(e));
@@ -490,11 +543,21 @@ export default {
     }
 };
 </script>
+
+
+
+
 <style>
+.plotgrid{
+  display: grid;
+  grid-gap: var(--spacing);
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  min-height: calc(100vh - var(--spacing)*2);
+}
 .fade-enter-active, .fade-leave-active {
   transition: opacity .5s;
 }
-.fade-enter, .fade-leave-to /* .fade-leave-active below version 2.1.8 */ {
+.fade-enter, .fade-leave-to {
   opacity: 0;
 }
 .wiz-container {
@@ -510,8 +573,8 @@ export default {
     left: 0;
     width: 100%;
 }
+
 .wiz-buttons {
-    /*float: right;*/
     text-align: right;
     vertical-align: bottom;
 }
@@ -527,4 +590,5 @@ export default {
 .progress.progress-lg {
   height: 20px;
 }
+
 </style>

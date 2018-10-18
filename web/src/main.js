@@ -29,6 +29,9 @@ const PreviewTable= Vue.component('PreviewTable', {
 	template: '<PreviewTable/>'
 });
 
+const InspectJobTask= Vue.component('InspectJobTask', {
+	template: '<InspectJobTask/>'
+});
 import MetisMenu from "metismenujs";
 
 Vue.config.productionTip = false;
