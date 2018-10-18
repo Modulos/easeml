@@ -118,7 +118,14 @@
                             <button type="button" class="btn btn-icon waves-effect btn-light" v-show="item.status==='completed'" @click.prevent="downloadTrainedModel(item.id)">
                                 <i class="mdi mdi-cube-send"></i>
                             </button>
+                            
                         </td>
+                       <td>
+                        <inspect-job-task/>
+                            <button @click="inspectJobTask" type="button" class="btn btn-icon waves-effect btn-light">
+                                <i class="fa fa-cloud-download"></i>
+                            </button>
+                       </td>
 
                     </tr>
                 </tbody>
@@ -136,12 +143,14 @@ import tarOpener from "@/schema/tar-opener";
 import findReadmeAndScan from "@/modals/NewDataset";
 import loadDirectory from "@/schema/src/dataset";
 const axios = require('axios');
+import InspectJobTask from '@/modals/InspectJobTask.vue'
 
 
 export default {
     components: {
         SumChart,
-        PrevChart
+        PrevChart,
+        InspectJobTask
     },
     data() {
         return {
@@ -193,6 +202,10 @@ export default {
         }
     },
     methods: {
+         inspectJobTask() {
+            console.log("inspect job task");
+            this.$modal.show("inspect-job-task");
+        },
         openDataset (f) {
             var test = null;
             let n = new numpyReader();
