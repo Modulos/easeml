@@ -1,66 +1,70 @@
 <template>
-<modal name="inspect-job-task" transition="pop-out" height="900" width="1000" @before-open="mounted">
+<modal name="inspect-job-task" transition="pop-out" height="auto" width="1000" @before-open="beforeOpen"> 
 
-        <button type="button" class="close" onclick="">
+        <button type="button" class="close" @click="$modal.hide('inspect-job-task')">
             <span>&times;</span><span class="sr-only">Close</span>
         </button>
+
         <h4 class="custom-modal-title">Inspect Job Task</h4>
         <div class="custom-modal-text">
             <form class="form-horizontal" action="#">
 
-                <div class="wiz-container">
+                <div :class="wizContainerClasses">
+
                     <transition name="fade" mode="out-in">
                         <div class="row">
                             <div class="col-6">
                                 <div>
                                     <h4>Job details</h4>
                                     <ul>
-                                    <li>Status: {{items[0].status}}</li>
-                                    <li>Running duration: {{items[0].runningDurationString}}</li>
-                                    <li>Quality: {{items[0].quality}}</li>
-                                    <li>Expected quality: {{items[0].qualityExpected}}</li>
+                                    <li>Status: {{items.status}}</li>
+                                    <li>Running duration: {{items.runningDurationString}}</li>
+                                    <li>Quality: {{items.quality}}</li>
+                                    <li>Expected quality: {{items.qualityExpected}}</li>
                                     </ul>
                                 </div>
                                 <div>
                                     <h4>Hyperparameter settings</h4>
-                                    <ul>
-                                    <li v-for="(value, key) in JSON.parse(items[0].config)" v-bind:key="key">
+                                    <ul v-if="items.config">
+                                    <li v-for="(value, key) in JSON.parse(items.config)" v-bind:key="key">
                                         <span>{{key}}: {{value}}</span>
                                     </li>
                                     </ul>
                                 </div>
+                            </div>
+                            <div class="col-6">
                                 <div>
-                                    <div v-if="objective !== null">
-                                        <h4>Objective: {{objective.name}}</h4>
+                                    <div v-if="thisobjective">
+                                        <h4>Objective: {{thisobjective.name}}</h4>
                                         <span v-html="ObjectiveDescriptionHtml"></span>
                                     </div>
                                 </div>
                                 <div>
-                                    <div v-if="objective !== null">
-                                        <h4>Model: {{model.name}}</h4>
+                                    <div v-if="thismodel">
+                                        <h4>Model: {{thismodel.name}}</h4>
                                         <span v-html="ModelDescriptionHtml"></span>
                                     </div>
                                 </div>
-                                
-                            </div>
-                            <div class="col-6">
+                                <!--
                                 <div>
                                     <h4>Training dataset</h4>
+                                    <PrevChart v-show="showPreview" ref="previewPlot"></PrevChart>
                                 </div>
                                 <div>
                                     <h4>Test dataset</h4>
-                                </div>
+                                </div>-->
                             </div>
                         </div>
                     </transition>
                 </div>
             </form>
         </div>
-    </modal>
+</modal>
 </template>
 
 <script>
 import client from "@/client/index";
+import PrevChart from "@/components/PrevChart";
 import showdown from "showdown";
 var converter = new showdown.Converter();
 
@@ -69,74 +73,55 @@ export default {
         return {
             items: [],
             jobId: "",
-            job: {},
-            jobModels: null,
-            model: [],
-            slectedModels: [],
-            objective: [],
+            allmodels: [],
+            allobjectives: [],
+            thismodel: null,
+            thisobjective: null,
+            inputdata: [],
+            showPreview: false,
         };
     },
     computed: {
         ModelDescriptionHtml() {
-            if(this.model  !== null){
-                return converter.makeHtml(this.model.description);
+            if(this.thismodel){
+                return converter.makeHtml(this.thismodel.description);
             } else {
                 return ""
             }
         },
         ObjectiveDescriptionHtml() { 
-            if (this.objective !== null){
-                return converter.makeHtml(this.objective.description);
+            if (this.thisobjective){
+                return converter.makeHtml(this.thisobjective.description);
             } else {
                 return ""
             }
         },
     },
     methods: {
-        loadData: function() {
+        beforeOpen(event) {
 
-            let context = client.loadContext(JSON.parse(localStorage.getItem("context")));
+            this.items = event.params.item;
+            this.allmodels = event.params.allmodels;
+            this.allobjectives = event.params.allobjectives;
+            // this.inputdata = event.params.inputdata;
 
-            context.getTasks({job: this.jobId, orderBy: "quality", order: "desc"})
-            .then(data => {
-                this.items = data;
-            })
-            .catch(e => console.log(e));
+            for(var m in this.allmodels){
+                if (this.allmodels[m].id === this.items.model){
+                    this.thismodel = this.allmodels[m]
+                }
+            };
 
-            context.getJobById(this.jobId)
-            .then(data => {
-                this.job = data;
-                this.jobModels = this.job.models;
-            })
-            .catch(e => console.log(e));
-
-            context.getModuleById(this.jobModels)
-            .then(data => {
-                this.model = data;
-            })
-            .catch(e => console.log(e));
-
-            context.getModules({type: "objective"})
-            .then(data => {
-                for (var obj in data){
-                    if (data[obj].id === this.items[0].objective){
-                        this.objective = data[obj]
-                    };
-                };
-            })
-            .catch(e => console.log(e));
+            for(var o in this.allobjectives){
+                if (this.allobjectives[o].id === this.items.objective){
+                    this.thisobjective = this.allobjectives[o]
+                }
+            };
+            // console.log(this.inputdata);
+            // this.$refs.previewPlot.updateChart(this.inputdata);
+            // this.showPreview = true;
         },
     },
-    mounted() {
-
-        this.jobId = this.$route.params.id;
-        this.loadData();
-        
-        // Repeat call every 1 second.
-        this.timer = setInterval(function() {
-            this.loadData();
-        }.bind(this), 1000);
-    },
+    
 };
 </script>
 

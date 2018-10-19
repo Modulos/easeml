@@ -2,9 +2,9 @@ import Vue from "vue";
 import App from "./App.vue";
 import router from "./router/index";
 import store from "./store";
-import VModal from 'vue-js-modal'
+import VModal from 'vue-js-modal';
 import VueSweetalert2 from 'vue-sweetalert2';
-import Notifications from 'vue-notification'
+import Notifications from 'vue-notification';
 
 Vue.use(VModal);
 Vue.use(VueSweetalert2);
@@ -15,7 +15,6 @@ var $ = global.jQuery;
 window.$ = $;
 
 require("bootstrap");
-
 
 const SumChart= Vue.component('SumChart', {
 	template: '<SumChart/>'
@@ -29,9 +28,10 @@ const PreviewTable= Vue.component('PreviewTable', {
 	template: '<PreviewTable/>'
 });
 
-const InspectJobTask= Vue.component('InspectJobTask', {
-	template: '<InspectJobTask/>'
-});
+// const InspectJobTask= Vue.component('InspectJobTask', {
+// 	template: '<InspectJobTask/>'
+// });
+
 import MetisMenu from "metismenujs";
 
 Vue.config.productionTip = false;

@@ -1,7 +1,7 @@
 <template>
 <modal name="new-job" transition="pop-out" height="700" width="1000" @before-open="beforeOpen">
 
-        <button type="button" class="close" onclick="">
+        <button type="button" class="close" @click="$modal.hide('new-job')">
             <span>&times;</span><span class="sr-only">Close</span>
         </button>
         <h4 class="custom-modal-title">Start New Job</h4>
@@ -274,12 +274,14 @@ export default {
         finish() {
 
             let context = client.loadContext(JSON.parse(localStorage.getItem("context")));
+            
             console.log("final hyper parameters: " + JSON.stringify(this.configspace_finish));
+            console.log("selected models: " + this.selectedModels.map(x => x.id));
+
             var configFormated = [];
             for (var modelKey in this.configspace_finish) {
                 configFormated.push({"id": modelKey, "config": this.configspace_finish[modelKey]})
             }
-            console.log(configFormated);
             let job = {
                 dataset: this.selectedDataset.id,
                 objective: this.selectedObjective.id,
