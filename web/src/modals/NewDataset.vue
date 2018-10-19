@@ -1,6 +1,6 @@
 <template>
 <modal name="new-dataset" transition="pop-out" height="auto" scrollable="true" width="1000" @before-open="beforeOpen">
-        <button type="button" class="close" onclick="">
+        <button type="button" class="close" @click="$modal.hide('new-dataset')">
             <span>&times;</span><span class="sr-only">Close</span>
         </button>
         <h4 class="custom-modal-title">Add a New Dataset</h4>
