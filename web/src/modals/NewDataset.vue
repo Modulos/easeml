@@ -143,6 +143,7 @@
                     </transition>
 
                 </div>
+                <div>
                 <div v-if="showPreviewOption && step === 2">
                      <button class="btn btn-custom waves-light waves-effect" @click.prevent="updateComponentData()">Show Preview</button>
                 </div>
@@ -152,9 +153,13 @@
                     </PrevChart>
                     <PrevChart  v-show="showPreview && step === 2" ref="lineplot2">
                     </PrevChart>
+                </div>
+                <div tablediv>
                     <PreviewTable v-show="showPreview && step === 2" ref="table">
                     </PreviewTable>
                 </div>
+                </div>
+                <div class="divider"/>
                 <div class="mt-1">
                     <div class="button-list wiz-buttons">
                         <button class="btn btn-custom waves-light waves-effect" v-show="prevVisible" @click.prevent="prev()">Previous</button>
@@ -248,7 +253,8 @@ export default {
             currentUploadProgress: 0,
             examples: null,
             showPreviewOption: false,
-            showPreview: false
+            showPreview: false,
+            wholeDataset: {}
         }
     },
     computed: {
@@ -288,19 +294,31 @@ export default {
             break;
         }
     }
-    console.log("test1")
-    console.log(a.shape)
-    console.log("test1")
     return dim;
 },
-        updateComponentData() {
-            console.log("test")
-            console.log(this.getDim(this.examples[0]))
-            console.log("test")
-      this.$refs.lineplot1.updateChart(this.examples[0])
-      this.$refs.lineplot2.updateChart(this.examples[1])
-      this.$refs.table.updateEntries(this.examples[0])
-      this.showPreview = true;
+    createDataMatrix(directories) {
+        var rows = [];
+        var nrows = 0;
+        for (var dirKey in directories) {
+                rows.push(directories[dirKey]["children"]["vector"]);
+                nrows = nrows + 1;
+                if (nrows > 10) {
+                    break;
+                }
+        }
+        console.log("number of samples:")
+        console.log(nrows)
+        return rows;
+    },
+    updateComponentData() {
+        //console.log("test")
+        //console.log(this.getDim(this.examples[0]))
+        //console.log("test")
+        var m = this.createDataMatrix(this.examples);
+        this.$refs.lineplot1.updateChart(m[0]);
+        this.$refs.lineplot2.updateChart(m[1]);
+        this.$refs.table.updateEntries(m);
+        this.showPreview = true;
     },
         prev() {
             this.switchStep(-1);
@@ -420,6 +438,7 @@ export default {
                 this.currentUserId = result.id;
             })
             .catch(e => console.log(e));
+            this.showPreview=false;
         },
         extractSchema(filestruct) {
 
@@ -447,12 +466,9 @@ export default {
                 var datasetTrainIn = schemaOutput[0];
                 var samples = schemaOutput[1]["directory"]["children"];
                 //var randomKey = Object.keys(samples)[0];
-                var key1 = Object.keys(samples)[0];
-                var chosenSample1 = samples[key1]["children"]["vector"];
-                this.examples = [chosenSample1];
-                console.log("test")
-                console.log(this.getDim(this.examples[0]))
-                console.log("test")
+                //var key1 = Object.keys(samples)[0];
+                //var chosenSample1 = samples[key1]["children"]["vector"];
+                this.examples = samples;
             } catch (err) {
                 if (err instanceof easemlSchema.dataset.DatasetException) {
                     this.error = "Dataset load error: " + err.message + " @ /train/input" + err.path;
@@ -521,7 +537,6 @@ export default {
             tarOpener.loadTarFile(file)
             .then(result => {
                 console.log(result)
-
                 // Check if the root contains a readme file.
                 let opener = tarOpener.new_opener(result);
                 
@@ -547,10 +562,15 @@ export default {
 
 
 <style>
+.divider{
+    width:auto;
+    height:10px;
+    display:inline-block;
+}
 .plotgrid{
   display: grid;
   grid-gap: var(--spacing);
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(450px, 1fr));
   min-height: calc(100vh - var(--spacing)*2);
 }
 .fade-enter-active, .fade-leave-active {

@@ -31,7 +31,7 @@ export default {
   },
   data: function () {
     return {
-      gridColumns: ['time', 'feature1'],
+      gridColumns: ['feature1', 'feature1'],
       gridData: [
       { time: '0', feature1: Infinity },
       { time: '1', feature1: 9000 },
@@ -63,26 +63,26 @@ export default {
   },
   methods: {
     updateEntries (newData) {
-      var items = [];
-      var minidict;
-      for (var index = 0; index < newData.length; index++) {
-        minidict = [];
-        minidict.push({
-          key: "time",
-          value: newData[index][0]
-        });
-        minidict.push({
-          key: "feature1",
-          value: newData[index][1]
-        })
-        items.push(minidict)
+      var cols = [""];
+      var content = [];
+      var tmp = {};
+      for (var rowIndex = 0; rowIndex<newData.length;rowIndex++) {
+        tmp = {};
+        tmp[""] = "sample"+rowIndex;
+        for (var colIndex = 0; colIndex<newData[rowIndex].length;colIndex++) {
+          if (rowIndex === 0) {
+            cols.push("feature"+colIndex);
+          }
+          var varKey = "feature"+colIndex;
+          tmp[varKey] = newData[rowIndex][colIndex];
+        }
+        content.push(tmp);
       }
-
-      this.items = [{
-          gridData: items
-        }]
-    }
+      this.gridColumns = cols,
+      this.gridData = content
+    }  
   }
+
 }
 
 
@@ -93,6 +93,7 @@ export default {
   clear: both;
   padding: 0;
   height: 210px;
+  width: 900px;
   margin-left: auto;
   margin-right: auto;
   overflow: hidden;
