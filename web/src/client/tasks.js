@@ -156,7 +156,7 @@ function downloadTrainedModelAsImage(id, inBrowser=false) {
         // Run query and collect results as a promise. The result passed to the promise is a Blob.
         return new Promise((resolve, reject) => {
 
-            this.axiosInstance.get("/tasks/"+id+"/image/download")
+            this.axiosInstance.get("/tasks/"+id+"/image/download", {timeout: 10000})
             .then(response => {
                 let contentType = response.headers["Content-Type"] || "";
                 let result = new Blob([response.data], {type : contentType});
