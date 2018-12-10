@@ -1,0 +1,9 @@
+name: hw
+channels:
+  - auto
+dependencies:
+  - python=3.6
+  - flask=1.0.2
+  - requests=2.20.1
+  - pip:
+    - pickledb
