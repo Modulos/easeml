@@ -11,7 +11,7 @@ app = Flask(__name__)
 
 apiKey = None
 easemlAddr = None
-db = pickledb.load("scratch/id_mappings.db", True)
+db = pickledb.load("id_mappings.db", True)
 
 
 def run_get_query(url, params=None):
@@ -22,7 +22,7 @@ def run_get_query(url, params=None):
         r_json = r.json()
         result = r_json["data"]
 
-        cursor = r_json["metadate"]["next-page-cursor"]
+        cursor = r_json["metadata"]["next-page-cursor"]
         if cursor != "":
             rec_result = run_get_query(url, dict(params, **{"cursor" : cursor}))
             result.append(rec_result)
@@ -182,6 +182,9 @@ def update_job_cache():
             for exec_id in db.getall():
                 v = db.get(exec_id)
                 job_id = v["id"]
+
+                # TODO: Check if the status has changed. If yes send a message to the workflow engine.
+
                 job_obj = jobs_dict[job_id]
                 db.set(exec_id, {"id" : job_id, "obj" : job_obj } )
 
@@ -190,6 +193,8 @@ def update_job_cache():
         
         time.sleep(1)
 
+easemlAddr = "localhost:8080"
+apiKey = "2f0b74a0-191b-4668-a956-b151d24ff3a2"
 
 if __name__ == "__main__":
 
@@ -202,6 +207,8 @@ if __name__ == "__main__":
 
     apiKey = args.api_key
     easemlAddr = args.easeml_addr
+
+    apiKey = "2f0b74a0-191b-4668-a956-b151d24ff3a2"
 
     updater_thread = threading.Thread(target=update_job_cache)
     updater_thread.start()
